@@ -87,6 +87,8 @@ const NewsPage: React.FC = () => {
         <form onSubmit={handleSearch} className="max-w-lg mx-auto mb-6">
           <input
             type="text"
+            id="news-search"  // Added id
+            name="newsSearch" // Added name
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search for news..."
