@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const NewsPage: React.FC = () => {
-  const [articles, setArticles] = useState([]);
+  const [articles, setArticles] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,9 +21,12 @@ const NewsPage: React.FC = () => {
           pageSize: 9, // Number of articles
         },
       });
+      if (response.data.articles.length === 0) {
+        throw new Error('No articles found for the selected country.');
+      }
       setArticles(response.data.articles);
-    } catch (error) {
-      setError('Failed to fetch news');
+    } catch (err) {
+      handleError(err); // Call handleError function
     } finally {
       setLoading(false);
     }
@@ -41,11 +44,25 @@ const NewsPage: React.FC = () => {
           pageSize: 9, // Number of articles
         },
       });
+      if (response.data.articles.length === 0) {
+        throw new Error('No articles found for the search term.');
+      }
       setArticles(response.data.articles);
-    } catch (error) {
-      setError('Failed to fetch news');
+    } catch (err) {
+      handleError(err); // Call handleError function
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleError = (err: unknown) => {
+    if (axios.isAxiosError(err)) {
+      const errorResponse = err.response?.data as { message?: string }; // Define expected structure
+      setError(`Failed to fetch news: ${errorResponse?.message || err.message}`);
+    } else if (err instanceof Error) {
+      setError(err.message); // Handle other types of errors
+    } else {
+      setError('An unknown error occurred'); // Fallback for unexpected errors
     }
   };
 
@@ -96,9 +113,7 @@ const NewsPage: React.FC = () => {
                   className="w-full h-48 object-cover rounded-t-lg"
                 />
                 <div className="p-4">
-                  <h2 className="text-xl font-bold mb-2">
-                    {article.title}
-                  </h2>
+                  <h2 className="text-xl font-bold mb-2">{article.title}</h2>
                   <p className="text-gray-600 mb-4">{article.description || 'No description available.'}</p>
                   <a
                     href={article.url}
