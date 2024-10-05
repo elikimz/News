@@ -1,10 +1,18 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import NewsPage from './components/images'
-import './index.css'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+import NewsPage from './components/images'
+
+import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
+import store from './redux/store';
+import './index.css';
+
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <Provider store={store}>
     <NewsPage/>
-  </StrictMode>,
-)
+  </Provider>
+);
+
+
+
+   

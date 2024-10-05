@@ -1,82 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchTopHeadlines, fetchNewsBySearch } from '../redux/newsSlice';
+import { RootState, AppDispatch } from '../redux/store'; // Ensure RootState and AppDispatch are exported correctly
 
 const NewsPage: React.FC = () => {
-  const [articles, setArticles] = useState<any[]>([]);
+  const dispatch: AppDispatch = useDispatch(); // Use AppDispatch type
+  const { articles, loading, error } = useSelector((state: RootState) => state.news);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const apiKey = '87ffefb85832433eb8aaa2a952ab7016'; // Your NewsAPI key
-
-  // Fetch top headlines by default
-  const fetchTopHeadlines = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await axios.get('https://newsapi.org/v2/top-headlines', {
-        params: {
-          apiKey: apiKey,
-          country: 'us', // You can change this to fetch news from a different country
-          pageSize: 9, // Number of articles
-        },
-      });
-      if (response.data.articles.length === 0) {
-        throw new Error('No articles found for the selected country.');
-      }
-      setArticles(response.data.articles);
-    } catch (err) {
-      handleError(err); // Call handleError function
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch news based on search term
-  const fetchNewsBySearch = async (query: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await axios.get('https://newsapi.org/v2/everything', {
-        params: {
-          apiKey: apiKey,
-          q: query,
-          pageSize: 9, // Number of articles
-        },
-      });
-      if (response.data.articles.length === 0) {
-        throw new Error('No articles found for the search term.');
-      }
-      setArticles(response.data.articles);
-    } catch (err) {
-      handleError(err); // Call handleError function
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleError = (err: unknown) => {
-    if (axios.isAxiosError(err)) {
-      const errorResponse = err.response?.data as { message?: string }; // Define expected structure
-      setError(`Failed to fetch news: ${errorResponse?.message || err.message}`);
-    } else if (err instanceof Error) {
-      setError(err.message); // Handle other types of errors
-    } else {
-      setError('An unknown error occurred'); // Fallback for unexpected errors
-    }
-  };
 
   useEffect(() => {
-    fetchTopHeadlines();
-  }, []);
+    dispatch(fetchTopHeadlines());
+  }, [dispatch]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      fetchNewsBySearch(searchTerm);
+      dispatch(fetchNewsBySearch(searchTerm));
     } else {
-      fetchTopHeadlines();
+      dispatch(fetchTopHeadlines());
     }
+    setSearchTerm('');
   };
 
   return (
@@ -87,8 +30,8 @@ const NewsPage: React.FC = () => {
         <form onSubmit={handleSearch} className="max-w-lg mx-auto mb-6">
           <input
             type="text"
-            id="news-search"  // Added id
-            name="newsSearch" // Added name
+            id="news-search"
+            name="newsSearch"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search for news..."
@@ -107,18 +50,18 @@ const NewsPage: React.FC = () => {
 
         {!loading && !error && articles.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article: any) => (
+            {articles.map((article: { url: string; urlToImage: string; title: string; description?: string }) => (
               <div key={article.url} className="bg-white p-4 rounded-lg shadow-lg">
                 <img
                   src={article.urlToImage}
-                  alt={article.title}
+                  alt={typeof article.title === 'string' ? article.title : 'News Article'}
                   className="w-full h-48 object-cover rounded-t-lg"
                 />
                 <div className="p-4">
                   <h2 className="text-xl font-bold mb-2">{article.title}</h2>
                   <p className="text-gray-600 mb-4">{article.description || 'No description available.'}</p>
                   <a
-                    href={article.url}
+                    href={typeof article.url === 'string' ? article.url : '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline"
