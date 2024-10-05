@@ -1,81 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchTopHeadlines, fetchNewsBySearch } from '../redux/newsSlice';
-import { RootState, AppDispatch } from '../redux/store'; // Ensure RootState and AppDispatch are exported correctly
+// src/components/CountryData.tsx
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
-const NewsPage: React.FC = () => {
-  const dispatch: AppDispatch = useDispatch(); // Use AppDispatch type
-  const { articles, loading, error } = useSelector((state: RootState) => state.news);
+interface Country {
+  name: string;
+  population: number;
+  flags: {
+    png: string;
+    svg: string;
+  };
+  area: number;
+  region: string;
+  subregion: string;
+}
+
+const CountryData: React.FC = () => {
+  const [countries, setCountries] = useState<Country[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredCountries, setFilteredCountries] = useState<Country[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
 
   useEffect(() => {
-    dispatch(fetchTopHeadlines());
-  }, [dispatch]);
+    const fetchCountryData = async () => {
+      try {
+        const response = await axios.get('https://restcountries.com/v3.1/all');
+        const data = response.data.map((country: any) => ({
+          name: country.name.common,
+          population: country.population,
+          flags: country.flags,
+          area: country.area,
+          region: country.region,
+          subregion: country.subregion,
+        }));
+        setCountries(data);
+        setFilteredCountries(data);
+      } catch (error) {
+        console.error('Error fetching country data:', error);
+      }
+    };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      dispatch(fetchNewsBySearch(searchTerm));
+    fetchCountryData();
+  }, []);
+
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = countries.filter(country =>
+        country.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredCountries(filtered);
     } else {
-      dispatch(fetchTopHeadlines());
+      setFilteredCountries(countries);
     }
-    setSearchTerm('');
+  }, [searchTerm, countries]);
+
+  const handleCountryClick = (country: Country) => {
+    setSelectedCountry(country);
+  };
+
+  const handleBack = () => {
+    setSelectedCountry(null);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6">
+    <div className="min-h-screen bg-gradient-to-b from-blue-200 to-blue-400 py-6">
       <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-center text-gray-800 mb-6">News Updates</h1>
+        <h1 className="text-4xl font-bold text-center text-gray-800 mb-6">Country Data</h1>
 
-        <form onSubmit={handleSearch} className="max-w-lg mx-auto mb-6">
-          <input
-            type="text"
-            id="news-search"
-            name="newsSearch"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search for news..."
-            className="block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="mt-4 w-full py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
-          >
-            Search
-          </button>
-        </form>
+        <input
+          type="text"
+          placeholder="Search for a country..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="block w-full p-3 mb-6 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
-        {loading && <p className="text-center text-gray-500">Loading news...</p>}
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
-        {!loading && !error && articles.length > 0 && (
+        {selectedCountry ? (
+          <div className="bg-white p-6 rounded-lg shadow-lg mb-6 transition transform hover:scale-105">
+            <button
+              onClick={handleBack}
+              className="mb-4 text-blue-500 underline hover:text-blue-700"
+            >
+              Back to Country List
+            </button>
+            <img src={selectedCountry.flags.png} alt={`Flag of ${selectedCountry.name}`} className="w-full h-48 object-cover mb-4 rounded-md shadow-md" />
+            <h2 className="text-3xl font-bold mb-2 text-gray-800">{selectedCountry.name}</h2>
+            <p className="text-gray-700">Population: {selectedCountry.population.toLocaleString()}</p>
+            <p className="text-gray-700">Area: {selectedCountry.area.toLocaleString()} km²</p>
+            <p className="text-gray-700">Region: {selectedCountry.region}</p>
+            <p className="text-gray-700">Subregion: {selectedCountry.subregion}</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article: { url: string; urlToImage: string; title: string; description?: string }) => (
-              <div key={article.url} className="bg-white p-4 rounded-lg shadow-lg">
-                <img
-                  src={article.urlToImage}
-                  alt={typeof article.title === 'string' ? article.title : 'News Article'}
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-                <div className="p-4">
-                  <h2 className="text-xl font-bold mb-2">{article.title}</h2>
-                  <p className="text-gray-600 mb-4">{article.description || 'No description available.'}</p>
-                  <a
-                    href={typeof article.url === 'string' ? article.url : '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    Read More
-                  </a>
-                </div>
+            {filteredCountries.map((country) => (
+              <div
+                key={country.name}
+                className="bg-white p-4 rounded-lg shadow-lg cursor-pointer transition-transform transform hover:scale-105"
+                onClick={() => handleCountryClick(country)}
+              >
+                <img src={country.flags.png} alt={`Flag of ${country.name}`} className="w-full h-24 object-cover mb-4 rounded-md shadow-md" />
+                <h2 className="text-xl font-bold mb-2 text-gray-800">{country.name}</h2>
+                <p className="text-gray-700">Population: {country.population.toLocaleString()}</p>
+                <p className="text-gray-700">Area: {country.area.toLocaleString()} km²</p>
+                <p className="text-gray-700">Region: {country.region}</p>
+                <p className="text-gray-700">Subregion: {country.subregion}</p>
               </div>
             ))}
           </div>
-        )}
-
-        {!loading && articles.length === 0 && (
-          <p className="text-center text-gray-500">No news articles found.</p>
         )}
       </div>
 
@@ -87,4 +117,4 @@ const NewsPage: React.FC = () => {
   );
 };
 
-export default NewsPage;
+export default CountryData;
